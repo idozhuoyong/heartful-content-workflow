@@ -1,0 +1,46 @@
+# 执行与交接协议
+
+当前为手动文件协议，尚无自动校验或恢复命令。Agent 必须核对文件内容，不能把文件存在等同于审核通过。
+
+## 输入与运行目录
+
+每次运行使用唯一标识 `YYYY-MM-DD-heartful[-NN]`，同名目录已存在时先判断是否恢复，不覆盖旧运行。
+
+`input.json` 至少记录 `run_id`、`platform`、`account`、`topic`、`target_audience`、`content_form`、`materials`、`constraints`。默认平台为 `wechat_official_account`，账号为“小卓心享”，单次一篇；未知值用 `null` 表示，在 `decisions.md` 记录待确认项或采用的假设，不编造用户偏好。
+
+每次运行包含：
+
+| 文件或目录 | 职责 |
+|---|---|
+| `input.json` | 冻结本次任务输入 |
+| `state.json` | 当前步骤、完成步骤、状态、产物和阻塞 |
+| `decisions.md` | 选题、假设、约束变更与用户决定 |
+| `topics.md` | 候选切口、比较依据与最终选择 |
+| `sources.md` | 来源 ID、标题、作者、原始链接或材料路径、时间、核实状态 |
+| `claims.md` | 主张 ID、性质、来源 ID、支持范围与核实结论 |
+| `drafts/` | 写作中的草稿 |
+| `articles/article-01.md` | 本次审核采用的正文 |
+| `images/`、`image_manifest.md` | 图片素材及其用途、来源、许可或缺口 |
+| `review.md` | 审核结论、未通过项与验证范围 |
+| `delivery.md` | 交付版本、文件清单、未完成项与待审批操作 |
+| `publish_log.md` | 仅在涉及外部写入时创建，记录授权、尝试与回执 |
+
+纯观点稿的来源和主张记录可以明确写“无外部事实引用”，不得为了凑表伪造来源。没有图片时不创建空素材目录，清单如实写明缺口。
+
+## 状态契约
+
+`state.json` 包含 `run_id`、`status`、`current_step`、`completed_steps`、`artifacts`、`blockers`、`updated_at`。`artifacts` 是相对运行目录的实际文件路径列表；时间使用带时区的 ISO 8601 格式。
+
+步骤按序为 `brief`、`topics`、`research`、`write`、`visuals`、`review`、`deliver`。状态为 `running`、`blocked`、`waiting_approval`、`completed`。只有必要产物保存且通过该步骤检查后才登记完成。必要输入缺失或审核失败时记录原因，保持当前步骤或转为 `blocked`。
+
+本地交付完成后停在 `waiting_approval`；用户确认交付且没有待执行操作时可记为 `completed`。`completed` 仅表示本次授权范围已完成，不能推断已发布。外部写入不是默认生产步骤，其结果单独记录。
+
+## 恢复与变更
+
+接手时读取项目规范、工作流、输入、状态、决策和审核记录，逐项核对已完成步骤的关键产物；不一致时先记录并解决，不继续假定完成。只继续首个未完成步骤。
+
+输入或正文变化时记录原因、受影响步骤及待重审范围，不静默修改已完成记录。修订使用版本化文件名，并在 `delivery.md` 指明当前版本；变动涉及事实或图片时同步复查相关来源和使用权。
+
+## 外部写入
+
+执行前核对当前工具能力、目标账号及既有授权，凭据不写入文件。`publish_log.md` 记录用户授权原意、平台、账号、文章版本、操作类型、时间、每次尝试、平台句柄及原始回执摘要。保存草稿和群发分别判断；回执不明时先只读查询，避免重复写入。授权和状态不从参考项目继承。
